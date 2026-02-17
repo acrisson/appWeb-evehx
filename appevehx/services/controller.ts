@@ -1,4 +1,4 @@
-const API_URL = "http://localhost:3000";
+const API_URL = "https://server-evehx2.onrender.com";
 
 export async function getRecords() {
   const response = await fetch(`${API_URL}/usuarios`);
