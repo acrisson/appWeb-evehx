@@ -29,8 +29,8 @@ export const RecordForm: React.FC<RecordFormProps> = ({
       setSelectedProductId(editingRecord.productid.toString());
       setSector(editingRecord.setor);
       setQuantity(editingRecord.quantidade.toString());
-      //setMes(editingRecord.mes.toString());
-     // setAno(editingRecord.ano.toString());
+      setMes(editingRecord.mes.toString());
+      setAno(editingRecord.ano.toString());
     } else {
       resetForm();
     }
@@ -200,8 +200,9 @@ export const RecordForm: React.FC<RecordFormProps> = ({
               className="w-full rounded-lg border-slate-300 border p-2.5 focus:ring-2 focus:ring-blue-500 outline-none"
               required
             >
-              {Array.from({ length: 6 }).map((_, i) => {
-                const year = new Date().getFullYear() - 2 + i;
+              {/* Gerar opções para o ano atual e o próximo ano */ }
+              {Array.from({ length: 2 }).map((_, i) => {
+                const year = new Date().getFullYear() + i;
                 return <option key={year} value={year}>{year}</option>;
               })}
             </select>

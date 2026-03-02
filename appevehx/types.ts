@@ -5,6 +5,11 @@ export interface ProdutoItem {
   estoque: number;
 }
 
+export interface entry {
+  name: string;
+  value: number;
+}
+
 export interface Inventory {
   id: string;
   productId: number;

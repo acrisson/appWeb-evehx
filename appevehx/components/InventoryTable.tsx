@@ -73,11 +73,11 @@ export const InventoryTable: React.FC<InventoryTableProps> = ({
              {/*<td className="px-6 py-4 text-sm text-slate-600">{record.mes}</td>*/}
                 <td className="px-6 py-4 text-sm text-slate-600">
                     <span className="px-2 py-1 bg-blue-50 text-blue-700 rounded-full text-xs font-semibold">
-                        {record.setor}
-                    </span>
+                        {record.setor}   
+                    </span> 
                 </td>
                 <td className="px-6 py-4 text-sm text-slate-600 text-right">{record.quantidade}</td>
-                <td className="px-6 py-4 text-sm text-slate-600 text-right">{formatCurrency(record.valorUnit)}</td>
+                <td className="px-6 py-4 text-sm text-slate-600 text-right">{formatCurrency(record.valorunit)   }</td>
                 <td className="px-6 py-4 text-sm font-bold text-slate-800 text-right">{formatCurrency(record.total)}</td>
                 <td className="px-6 py-4 text-sm text-slate-600 text-right">{record.estoque}</td>
                 <td className="px-6 py-4 text-center">

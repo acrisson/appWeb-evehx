@@ -11,7 +11,7 @@ export const ITEMS: Produtos = {
   107: { nome: "TECLADO - Logitech K120- USANDO", valor: 0.00, estoque: 6 }
 };
 
-// ajudar  para converter o mapa em array para menus suspensos
+// converter o ITEMS em array para Ojbjeto :
 export const PRODUCT_LIST = Object.entries(ITEMS).map(([id, data]) => ({
   id: Number(id),
   ...data

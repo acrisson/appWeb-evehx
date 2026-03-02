@@ -3,7 +3,6 @@ import {useEffect} from 'react';
 import { 
   LayoutDashboard, 
   DollarSign, 
-  ShoppingCart, 
   TrendingUp, 
   SquareChartGantt,
   PieChart as PieIcon 
@@ -25,7 +24,7 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
 import { Inventory } from './types';
-import { formatCurrency, generateId } from './utils/format';
+import { formatCurrency} from './utils/format';
 import { RecordForm } from './components/RecordForm';
 import { InventoryTable } from './components/InventoryTable';
 import { StatsCard } from './components/StatsCard';
@@ -33,7 +32,9 @@ import {
   getRecords, 
   createRecord, 
   updateRecord, 
-  deleteRecord } from './services/controller';
+  deleteRecord,
+  //getMonthsAndYears 
+} from './services/controller';
 
 const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#6366f1'];
 // carregar o itens que estão armazenador no  banco de dados -->
@@ -42,14 +43,20 @@ const App: React.FC = () => {
   const [editingRecord, setEditingRecord] = useState<Inventory | null>(null);
   const [filterMes, setFilterMes] = React.useState<string>('');
   const [filterAno, setFilterAno] = React.useState<string>('');
+ // const [availableMonths, setAvailableMonths] = useState<number[]>([]);
+ // const [availableYears, setAvailableYears] = useState<number[]>([]);
   const loadRecords = async () => {
     const data = await getRecords();
     setRecords(data);
   };
+
+  
+
   useEffect(() => {
     loadRecords();
   }, []);
     
+
 
   // Adicionar manipulador de registros
   const handleAddRecord = async (newRecord: Omit<Inventory, 'id' | 'timestamp'>) => {
@@ -128,13 +135,13 @@ const App: React.FC = () => {
     doc.setFontSize(18);
     doc.text("Relatório de Acessórios", 14, 22);
     doc.setFontSize(11);
-    doc.text(`Data de Emissão: ${new Date().toLocaleDateString('pt-BR')}`, 14, 30);
+    doc.text(`Mês Referente: ${new Date().toLocaleDateString('pt-BR')}`, 14, 30);
 
     // Resumo no topo do PDF
-    const totalValue = target.reduce((acc, curr) => acc + curr.total, 0);
+    const totalValue = target.reduce((acc, curr) => acc + (isNaN(Number(curr.total)) ? 0 : Number(curr.total)), 0);
     const totalItems = target.reduce((acc, curr) => acc + curr.quantidade, 0);
     doc.text(`Total de Itens: ${totalItems} | Valor Total: ${formatCurrency(totalValue)}`, 14, 38);
-
+         
     // Tabela de dados
     const tableColumn = ["ID", "Produto", "Setor", "Qtd", "Unitário", "Total"];
     const tableRows = target.map(record => [
@@ -142,9 +149,10 @@ const App: React.FC = () => {
       record.nome,
       record.setor,
       record.quantidade,
-      formatCurrency(record.valorUnit),
+      formatCurrency(record.valorunit),
       formatCurrency(record.total)
     ]);
+    
 
     autoTable(doc, {
       startY: 45,
@@ -157,31 +165,75 @@ const App: React.FC = () => {
     doc.save("relatorio_acessorios.pdf");
   };
 
-  // Filtered records according to selected month/year
-  const filteredRecords = React.useMemo(() => {
-    return records.filter(r => {
-      if (filterMes && Number(filterMes) !== r.mes) return false;
-      if (filterAno && Number(filterAno) !== r.ano) return false;
-      return true;
-    });
-  }, [records, filterMes, filterAno]);
+  // Extrair meses e anos únicos dos registros
+  const filteredRecords = useMemo(() => {
+  return records.filter(r => {
+    const date = new Date(r.timestamp);
+    const mes = date.getMonth() + 1; // Janeiro = 0
+    const ano = date.getFullYear();
+
+    if (filterMes && Number(filterMes) !== mes) return false;
+    if (filterAno && Number(filterAno) !== ano) return false;
+
+    return true;
+  });
+}, [records, filterMes, filterAno]);
+
+const { availableMonths, availableYears } = useMemo(() => {
+  const monthsSet = new Set<number>();
+  const yearsSet = new Set<number>();
+
+  records.forEach((r) => {
+    const date = new Date(r.timestamp);
+    monthsSet.add(date.getMonth() + 1); // Janeiro = 0
+    yearsSet.add(date.getFullYear());
+  });
+
+  return {
+    availableMonths: Array.from(monthsSet).sort((a, b) => a - b),
+    availableYears: Array.from(yearsSet).sort((a, b) => b - a),
+  };
+}, [records]);
 
   // Cálculo de estatísticas e dados para gráficos
   const stats = useMemo(() => {
-    const totalValue = records.reduce((acc, curr) => acc + Number(curr.total), 0);
-    const totalItems = records.reduce((acc, curr) => acc + curr.quantidade, 0);
-    const totalRecords = records.length;
+  const totalValue = filteredRecords.reduce(
+    (acc, curr) => acc + Number(curr.total),
+    0
+  );
+
+  const totalItems = filteredRecords.reduce(
+    (acc, curr) => acc + curr.quantidade,
+    0
+  );
+
+  const totalRecords = filteredRecords.length;
+
+  const sectorMap = filteredRecords.reduce((acc, curr) => {
+    const totalNumber = Number(curr.total);
+    acc[curr.setor] = (acc[curr.setor] || 0) + totalNumber;
+    return acc;
+  }, {} as Record<string, number>);
+
+  const chartData = Object.entries(sectorMap).map(([name, value]) => ({
+    name,
+    value,
+  }));
+
+  return { totalValue, totalItems, totalRecords, chartData };
+}, [filteredRecords]);
     
     // Agrupar por setor para gráficos
-    const sectorMap = records.reduce((acc, curr) => {
-      acc[curr.setor] = (acc[curr.setor] || 0) + curr.total;
+    const sectorMap = filteredRecords.reduce((acc, curr) => {
+      const toltalNumber = Number(curr.total);
+      acc[curr.setor] = (acc[curr.setor] || 0) + (isNaN(toltalNumber) ? 0 : toltalNumber);
       return acc;
     }, {} as Record<string, number>);
 
-    const chartData = Object.entries(sectorMap).map(([name, value]) => ({ name, value }));
-
-    return { totalValue, totalItems, totalRecords, chartData };
-  }, [records]);
+   // const chartData = Object.entries(sectorMap).map(([name, value]) => ({ name, value }));
+//
+   // return { totalValue, totalItems, totalRecords, chartData };
+ // }, [filteredRecords]);
 
   return (
     <div className="min-h-screen bg-slate-50" style={{ height: '100vh', overflowY: 'auto' }}>
@@ -242,13 +294,13 @@ const App: React.FC = () => {
             />
             
             {/*Minigráfico, se houver dados */}
-            {stats.chartData.length > 0 && (
+            {stats.chartData?.length > 0 && (
                 <div className="mt-6 bg-white p-6 rounded-xl shadow-sm border border-slate-100 hidden lg:block">
                     <h3 className="text-sm font-semibold text-slate-500 mb-4 flex items-center gap-2">
                         <PieIcon className="w-4 h-4" /> Distribuição por Setor (R$)
                     </h3>
-                    <div className="h-64">
-                         <ResponsiveContainer width="100%" height="100%">
+                    <div className="h-64 flex-1">
+                         <ResponsiveContainer width="100%" height={300}>
                             <PieChart>
                                 <Pie
                                     data={stats.chartData}
@@ -259,8 +311,8 @@ const App: React.FC = () => {
                                     paddingAngle={5}
                                     dataKey="value"
                                 >
-                                    {stats.chartData.map((entry, index) => (
-                                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                                    {stats.chartData.map((entry:{ name: string; value: number }, index: number) => (
+                                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                                     ))}
                                 </Pie>
                                 <Tooltip formatter={(value: number) => formatCurrency(value)} />
@@ -274,7 +326,7 @@ const App: React.FC = () => {
 
           {/* Coluna da direita: Tabela e gráfico de barras */}
           <div className="lg:col-span-2 flex flex-col gap-8">
-             {/* Tabela de dados */}
+             {/* Tabela para seleção de registros de Mes e ano */}
              <div className="flex-1 min-h-[400px]">
               <div className="mb-4 bg-white p-4 rounded-md">
                 <div className="flex items-center gap-4">
@@ -282,17 +334,21 @@ const App: React.FC = () => {
                     <label className="block text-sm text-slate-600">Mês</label>
                     <select value={filterMes} onChange={(e) => setFilterMes(e.target.value)} className="rounded border p-2">
                       <option value="">Todos</option>
-                      {Array.from({length:12}).map((_,i) => <option key={i} value={i+1}>{i+1}</option>)}
+                        {availableMonths.map((mes) =>(
+                        <option key={mes} value={mes}>
+                          {mes.toString().padStart(2, '0')}
+                          </option>))}
+                    
                     </select>
                   </div>
                   <div>
                     <label className="block text-sm text-slate-600">Ano</label>
                     <select value={filterAno} onChange={(e) => setFilterAno(e.target.value)} className="rounded border p-2">
                       <option value="">Todos</option>
-                      {Array.from({ length: 6 }).map((_, i) => {
-                        const year = new Date().getFullYear() - 2 + i;
-                        return <option key={year} value={year}>{year}</option>;
-                      })}
+                            {availableYears.map((ano) => (
+                            <option key={ano} value={ano}>
+                                {ano}
+                               </option>))}
                     </select>
                   </div>
                   <button className="ml-auto text-sm text-slate-600 underline" onClick={() => { setFilterMes(''); setFilterAno(''); }}>Limpar</button>
@@ -308,7 +364,7 @@ const App: React.FC = () => {
               />
              </div>
 
-             {/* Bottom Chart */}
+             {/* Bottom Chart */  }  
              {stats.chartData.length > 0 && (
                  <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-100">
                     <h3 className="text-lg font-semibold text-slate-800 mb-6">Gastos por Setor</h3>
@@ -317,7 +373,7 @@ const App: React.FC = () => {
                             <BarChart data={stats.chartData} layout="vertical" margin={{ top: 5, right: 30, left: 40, bottom: 5 }}>
                                 <CartesianGrid strokeDasharray="3 3" horizontal={false} />
                                 <XAxis type="number" tickFormatter={(val) => `R$${val}`} />
-                                <YAxis dataKey="name" type="category" width={100} />
+                                <YAxis dataKey="name" type="category" width={120} />
                                 <Tooltip 
                                     formatter={(value: number) => [formatCurrency(value), "Total"]}
                                     cursor={{fill: '#f1f5f9'}}
