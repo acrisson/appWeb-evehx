@@ -23,7 +23,7 @@ import {
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
-import { Inventory } from './types';
+import { Inventory, ProdutoItem } from './types';
 import { formatCurrency} from './utils/format';
 import { RecordForm } from './components/RecordForm';
 import { InventoryTable } from './components/InventoryTable';
@@ -35,6 +35,7 @@ import {
   deleteRecord,
   //getMonthsAndYears 
 } from './services/controller';
+import { INITIAL_PRODUCT_LIST } from './constants';
 
 const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#6366f1'];
 // carregar o itens que estão armazenador no  banco de dados -->
@@ -43,11 +44,35 @@ const App: React.FC = () => {
   const [editingRecord, setEditingRecord] = useState<Inventory | null>(null);
   const [filterMes, setFilterMes] = React.useState<string>('');
   const [filterAno, setFilterAno] = React.useState<string>('');
+
+  // recalcular estoque disponível conforme registros criados/atualizados
+  const productsWithStock: ProdutoItem[] = useMemo(() => {
+    return INITIAL_PRODUCT_LIST.map((p) => {
+      const usedQty = records
+        .filter(r => r.productId === p.id)
+        .reduce((a, c) => a + c.quantidade, 0);
+      return { ...p, estoque: Math.max(0, p.estoque - usedQty) };
+    });
+  }, [records]);
  // const [availableMonths, setAvailableMonths] = useState<number[]>([]);
  // const [availableYears, setAvailableYears] = useState<number[]>([]);
+  // helper para ajustar nomes de campos retornados pela API
+  const normalizeRecord = (r: any): Inventory => ({
+    ...r,
+    productId: r.productId ?? r.productid,
+    valorUnit: r.valorUnit ?? r.valorunit,
+    total: r.total ?? r.total,
+    estoque: r.estoque ?? r.estoque,
+    setor: r.setor ?? r.setor,
+    quantidade: r.quantidade ?? r.quantidade,
+    mes: r.mes ?? r.mes,
+    ano: r.ano ?? r.ano,
+    timestamp: r.timestamp ?? r.timestamp,
+  });
+
   const loadRecords = async () => {
     const data = await getRecords();
-    setRecords(data);
+    setRecords(Array.isArray(data) ? data.map(normalizeRecord) : []);
   };
 
   
@@ -102,7 +127,7 @@ const App: React.FC = () => {
 
     const headers = "ID,Produto ID,Nome,Setor,Quantidade,Valor Unitário,Total\n";
     const csvContent = target.map(item => 
-      `${item.id},${item.productid},${item.nome},${item.setor},${item.quantidade},${item.valorUnit},${item.total}`
+      `${item.id},${item.productId},${item.nome},${item.setor},${item.quantidade},${item.valorUnit},${item.total}`
     ).join("\n");
 
     const blob = new Blob([headers + csvContent], { type: 'text/csv;charset=utf-8;' });
@@ -145,11 +170,11 @@ const App: React.FC = () => {
     // Tabela de dados
     const tableColumn = ["ID", "Produto", "Setor", "Qtd", "Unitário", "Total"];
     const tableRows = target.map(record => [
-      record.productid,
+      record.productId,
       record.nome,
       record.setor,
       record.quantidade,
-      formatCurrency(record.valorunit),
+      formatCurrency(record.valorUnit),
       formatCurrency(record.total)
     ]);
     
@@ -287,6 +312,7 @@ const { availableMonths, availableYears } = useMemo(() => {
           {/* Coluna da esquerda: Formulário de entrada */}
           <div className="lg:col-span-1">
             <RecordForm 
+              productList={productsWithStock}
               onAdd={handleAddRecord} 
               onUpdate={handleUpdateRecord}
               editingRecord={editingRecord}

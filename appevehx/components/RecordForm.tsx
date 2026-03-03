@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, Save, Edit2, X } from 'lucide-react';
-import { PRODUCT_LIST, SECTORS } from '../constants';
+import { SECTORS } from '../constants';
 import { formatCurrency } from '../utils/format';
-import { Inventory } from '../types';
+import { Inventory, ProdutoItem } from '../types';
 
 interface RecordFormProps {
+  productList: ProdutoItem[]; // lista atualizada de produtos com estoque disponível
   onAdd: (record: Omit<Inventory, 'id' | 'timestamp'>) => void;
   onUpdate: (record: Inventory) => void;
   editingRecord: Inventory | null;
@@ -12,6 +13,7 @@ interface RecordFormProps {
 }
 
 export const RecordForm: React.FC<RecordFormProps> = ({ 
+  productList,
   onAdd, 
   onUpdate, 
   editingRecord, 
@@ -26,11 +28,13 @@ export const RecordForm: React.FC<RecordFormProps> = ({
   // Preencher formulário ao editar alterações de registro
   useEffect(() => {
     if (editingRecord) {
-      setSelectedProductId(editingRecord.productid.toString());
+      const prodIdValue =
+        editingRecord.productId ?? (editingRecord as any).productId ?? "";
+      setSelectedProductId(prodIdValue !== null && prodIdValue !== undefined ? prodIdValue.toString() : "");
       setSector(editingRecord.setor);
       setQuantity(editingRecord.quantidade.toString());
-      setMes(editingRecord.mes.toString());
-      setAno(editingRecord.ano.toString());
+      //setMes(editingRecord.mes.toString());
+      //setAno(editingRecord.ano.toString());
     } else {
       resetForm();
     }
@@ -48,12 +52,21 @@ export const RecordForm: React.FC<RecordFormProps> = ({
     e.preventDefault();
     if (!selectedProductId || !sector || !quantity) return;
 
-    const product = PRODUCT_LIST.find(p => p.id === Number(selectedProductId));
+    const product = productList.find(p => p.id === Number(selectedProductId));
     if (!product) return;
 
     const qty = Number(quantity);
     const total = product.valor * qty;
-    const estoque = product.estoque - qty;
+
+    // calcula estoque disponível levando em conta se estamos editando um registro
+    let estoque: number;
+    if (editingRecord && editingRecord.productId === product.id) {
+      // reestabelece a quantidade anterior antes de subtrair a nova
+      estoque = Math.max(0, product.estoque + editingRecord.quantidade - qty);
+    } else {
+      estoque = Math.max(0, product.estoque - qty);
+    }
+
     if (editingRecord) {
       // Atualizar registro existente
       onUpdate({
@@ -64,8 +77,8 @@ export const RecordForm: React.FC<RecordFormProps> = ({
         quantidade: qty,
         valorUnit: product.valor,
         total: total,
-        estoque: estoque
-        , mes: Number(mes), ano: Number(ano)
+        estoque: estoque,
+        mes: Number(mes), ano: Number(ano)
       });
     } else {
       // Adicionar novo registro
@@ -76,16 +89,15 @@ export const RecordForm: React.FC<RecordFormProps> = ({
         quantidade: qty,
         valorUnit: product.valor,
         total: total,
-        estoque: estoque
-        , mes: Number(mes), ano: Number(ano)
-        
+        estoque: estoque,
+        mes: Number(mes), ano: Number(ano)
       });
     }
 
     if (!editingRecord) resetForm();
   };
 
-  const selectedProduct = PRODUCT_LIST.find(p => p.id === Number(selectedProductId));
+  const selectedProduct = productList.find(p => p.id === Number(selectedProductId));
   const isEditing = !!editingRecord;
 
   return (
@@ -121,7 +133,7 @@ export const RecordForm: React.FC<RecordFormProps> = ({
             required
           >
             <option value="">Selecione um produto...</option>
-            {PRODUCT_LIST.map((prod) => (
+            {productList.map((prod) => (
               <option key={prod.id} value={prod.id}>
                 {prod.id} - {prod.nome} : {prod.estoque} Estoque
               </option>
@@ -174,39 +186,6 @@ export const RecordForm: React.FC<RecordFormProps> = ({
                         : 'R$ 0,00'}
                 </span>
             </div>
-        </div>
-
-        {/* Seleção de Mês / Ano */}
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">Mês de Referência</label>
-            <select
-              value={mes}
-              onChange={(e) => setMes(e.target.value)}
-              className="w-full rounded-lg border-slate-300 border p-2.5 focus:ring-2 focus:ring-blue-500 outline-none"
-              required
-            >
-              {Array.from({ length: 12 }).map((_, i) => (
-                <option key={i} value={i + 1}>{i + 1}</option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">Ano de Referência</label>
-            <select
-              value={ano}
-              onChange={(e) => setAno(e.target.value)}
-              className="w-full rounded-lg border-slate-300 border p-2.5 focus:ring-2 focus:ring-blue-500 outline-none"
-              required
-            >
-              {/* Gerar opções para o ano atual e o próximo ano */ }
-              {Array.from({ length: 2 }).map((_, i) => {
-                const year = new Date().getFullYear() + i;
-                return <option key={year} value={year}>{year}</option>;
-              })}
-            </select>
-          </div>
         </div>
 
         <div className="flex gap-3">

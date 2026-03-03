@@ -68,7 +68,7 @@ export const InventoryTable: React.FC<InventoryTableProps> = ({
           <tbody className="divide-y divide-slate-100">
             {records.map((record) => (
               <tr key={record.id} className="hover:bg-slate-50 transition-colors">
-                <td className="px-6 py-4 text-sm text-slate-600 font-mono">{record.productid}</td>
+                <td className="px-6 py-4 text-sm text-slate-600 font-mono">{record.productId}</td>
                 <td className="px-6 py-4 text-sm text-slate-800 font-medium">{record.nome}</td>
              {/*<td className="px-6 py-4 text-sm text-slate-600">{record.mes}</td>*/}
                 <td className="px-6 py-4 text-sm text-slate-600">
@@ -77,7 +77,7 @@ export const InventoryTable: React.FC<InventoryTableProps> = ({
                     </span> 
                 </td>
                 <td className="px-6 py-4 text-sm text-slate-600 text-right">{record.quantidade}</td>
-                <td className="px-6 py-4 text-sm text-slate-600 text-right">{formatCurrency(record.valorunit)   }</td>
+                <td className="px-6 py-4 text-sm text-slate-600 text-right">{formatCurrency(record.valorUnit)   }</td>
                 <td className="px-6 py-4 text-sm font-bold text-slate-800 text-right">{formatCurrency(record.total)}</td>
                 <td className="px-6 py-4 text-sm text-slate-600 text-right">{record.estoque}</td>
                 <td className="px-6 py-4 text-center">

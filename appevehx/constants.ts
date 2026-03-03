@@ -11,11 +11,13 @@ export const ITEMS: Produtos = {
   107: { nome: "TECLADO - Logitech K120- USANDO", valor: 0.00, estoque: 6 }
 };
 
-// converter o ITEMS em array para Ojbjeto :
-export const PRODUCT_LIST = Object.entries(ITEMS).map(([id, data]) => ({
+// converter o ITEMS em array para Objeto (estado inicial dos produtos):
+export const INITIAL_PRODUCT_LIST = Object.entries(ITEMS).map(([id, data]) => ({
   id: Number(id),
   ...data
 }));
+// alias mantido para compatibilidade, mas o fluxo agora utiliza o valor inicial
+export const PRODUCT_LIST = INITIAL_PRODUCT_LIST; 
 
 export const SECTORS = [
   "JURIDICO",
