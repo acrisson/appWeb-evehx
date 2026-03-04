@@ -1,4 +1,4 @@
-const API_URL = "https://server-evehx2.onrender.com";
+const API_URL = ((import.meta as any).env?.VITE_API_URL as string) || "https://server-evehx2.onrender.com"; // use env variable or default to local dev server
 
 function normalizeResponse(record: any) {
  
@@ -65,4 +65,47 @@ export async function deleteRecord(id: string) {
   await fetch(`${API_URL}/usuarios/${id}`, {
     method: "DELETE",
   });
+}
+
+// product-related helpers --------------------------------------------------
+export async function getProducts() {
+  const res = await fetch(`${API_URL}/produtos`);
+  if (!res.ok) throw new Error(`Failed to fetch products: ${res.status}`);
+  return res.json();
+}
+
+export async function createProduct(data: { nome: string; valor: number; estoque: number }) {
+  const res = await fetch(`${API_URL}/produtos`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) {
+    const t = await res.text();
+    throw new Error(`API error ${res.status}: ${t}`);
+  }
+  return res.json();
+}
+
+export async function updateProduct(id: number | string, data: { nome?: string; valor?: number; estoque?: number }) {
+  const res = await fetch(`${API_URL}/produtos/${id}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) {
+    const t = await res.text();
+    throw new Error(`API error ${res.status}: ${t}`);
+  }
+  return res.json();
+}
+
+export async function deleteProduct(id: number | string) {
+  const res = await fetch(`${API_URL}/produtos/${id}`, {
+    method: "DELETE",
+  });
+  if (!res.ok) {
+    const t = await res.text();
+    throw new Error(`delete failed: ${res.status} ${t}`);
+  }
 }
