@@ -41,6 +41,8 @@ import {
   deleteProduct,
 } from './services/controller';
 import { INITIAL_PRODUCT_LIST } from './constants';
+import logo from './src/assets/logo.png';
+
 
 const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#6366f1'];
 // carregar o itens que estão armazenador no  banco de dados -->
@@ -69,7 +71,6 @@ const App: React.FC = () => {
   }, [records, products]);
  // const [availableMonths, setAvailableMonths] = useState<number[]>([]);
  // const [availableYears, setAvailableYears] = useState<number[]>([]);
-  // helper para ajustar nomes de campos retornados pela API
   const normalizeRecord = (r: any): Inventory => ({
     ...r,
     productId: r.productId ?? r.productid,
@@ -428,8 +429,13 @@ const { availableMonths, availableYears } = useMemo(() => {
                 editingRecord={editingRecord}
                 onCancelEdit={handleCancelEdit}
               />
-              {/*Minigráfico, se houver dados */}
-              {stats.chartData?.length > 0 && (
+
+
+
+              <div className="mt-20 bg-white p-6 rounded-xl shadow-sm border border-slate-100 hidden lg:block"> 
+                <img src={logo} alt="Logo" width="100%" /> </div>
+             {/* Gráfico de pizza para distribuição por setor */} 
+              {/*stats.chartData?.length > 0 && (
                 <div className="mt-6 bg-white p-6 rounded-xl shadow-sm border border-slate-100 hidden lg:block">
                     <h3 className="text-sm font-semibold text-slate-500 mb-4 flex items-center gap-2">
                         <PieIcon className="w-4 h-4" /> Distribuição por Setor (R$)
@@ -456,8 +462,10 @@ const { availableMonths, availableYears } = useMemo(() => {
                          </ResponsiveContainer>
                     </div>
                 </div>
-            )}
+            ) */} 
           </div>
+         
+
 
           {/* Coluna da direita: Tabela e gráfico de barras */}
           <div className="lg:col-span-2 flex flex-col gap-8">
