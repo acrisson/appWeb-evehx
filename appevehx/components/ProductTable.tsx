@@ -5,6 +5,7 @@ import { formatCurrency } from '../utils/format';
 
 interface ProductTableProps {
   products: ProdutoItem[];
+  originalProducts: ProdutoItem[];
   onDelete: (id: number) => void;
   onEdit: (product: ProdutoItem) => void;
   onExportPDF?: () => void;
@@ -13,6 +14,7 @@ interface ProductTableProps {
 
 export const ProductTable: React.FC<ProductTableProps> = ({
   products,
+  originalProducts,
   onDelete,
   onEdit,
   onExportPDF,
@@ -62,16 +64,24 @@ export const ProductTable: React.FC<ProductTableProps> = ({
               <th className="px-6 py-3 font-semibold">Nome</th>
               <th className="px-6 py-3 font-semibold text-right">Valor</th>
               <th className="px-6 py-3 font-semibold text-right">Estoque</th>
+              <th className="px-6 py-3 font-semibold text-center">Saida</th>
               <th className="px-6 py-3 font-semibold text-center">Ações</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
-            {products.map((prod) => (
+            {products.map((prod) => {
+              const original = originalProducts.find(p => p.id === prod.id);
+              const saidaValue = original ? original.estoque - prod.estoque : 0;
+              const stockValue = prod.estoque;
+              const stockClass = stockValue < 0? 'text-red-600' :   'text-green-600';
+              const saidaClass = saidaValue > 0 ? 'text-red-600' : 'text-green-600'
+              return (
               <tr key={prod.id} className="hover:bg-slate-50 transition-colors">
-                <td className="px-6 py-4 text-sm text-slate-600 font-mono">{prod.id}</td>
+                <td className="px-6 py-4 text-sm text-slate-800 font-mono">{prod.id}</td>
                 <td className="px-6 py-4 text-sm text-slate-800 font-medium">{prod.nome}</td>
-                <td className="px-6 py-4 text-sm text-slate-600 text-right">{formatCurrency(prod.valor)}</td>
-                <td className="px-6 py-4 text-sm text-slate-600 text-right">{prod.estoque}</td>
+                <td className="px-6 py-4 text-sm text-slate-800 text-right">{formatCurrency(prod.valor)}</td>
+                <td className={`px-6 py-4 text-lg text-slate-800 text-right ${stockClass}`}>{stockValue}</td>
+                <td className={`px-6 py-4 text-lg text-slate-800 text-right ${saidaClass}`}>{saidaValue}</td>
                 <td className="px-6 py-4 text-center">
                   <div className="flex items-center justify-center gap-2">
                     <button
@@ -91,7 +101,8 @@ export const ProductTable: React.FC<ProductTableProps> = ({
                   </div>
                 </td>
               </tr>
-            ))}
+              );
+            })}
           </tbody>
         </table>
       </div>

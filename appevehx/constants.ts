@@ -22,7 +22,6 @@ export const PRODUCT_LIST = INITIAL_PRODUCT_LIST;
 export const SECTORS = [
   "JURIDICO",
   "FINANCEIRO",
-  "TI",
   "RH",
   "COMPRAS",
   "COMERCIAL",
@@ -35,4 +34,7 @@ export const SECTORS = [
   "PCP",
   "ESTUDOS",
   "ESCORAMENTO",
+  "ORÇAMENTO",
+  "MARKETING",
+  "MEDIÇÃO"
 ];

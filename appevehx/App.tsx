@@ -349,21 +349,18 @@ const { availableMonths, availableYears } = useMemo(() => {
   return { totalValue, totalItems, totalRecords, chartData };
 }, [filteredRecords]);
     
-    // Agrupar por setor para gráficos
-    const sectorMap = filteredRecords.reduce((acc, curr) => {
-      const toltalNumber = Number(curr.total);
-      acc[curr.setor] = (acc[curr.setor] || 0) + (isNaN(toltalNumber) ? 0 : toltalNumber);
-      return acc;
-    }, {} as Record<string, number>);
-
-   // const chartData = Object.entries(sectorMap).map(([name, value]) => ({ name, value }));
-//
-   // return { totalValue, totalItems, totalRecords, chartData };
- // }, [filteredRecords]);
-
+  // Estatísticas para a página de estoque
+  const stockStats = useMemo(() => {
+    const totalStock = productsWithStock.reduce((acc, p) => acc + p.estoque, 0);
+    const totalOutput = products.reduce((acc, p) => {
+      const current = productsWithStock.find(pws => pws.id === p.id)?.estoque || 0;
+      return acc + (p.estoque - current);
+    }, 0);
+    return { totalStock, totalOutput };
+  }, [products, productsWithStock]);
+        
   return (
     <div className="min-h-screen bg-slate-50" style={{ height: '100vh', overflowY: 'auto' }}>
-      
       {/* Navbar */}
       <nav className="bg-slate-900 text-white shadow-lg sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -374,14 +371,11 @@ const { availableMonths, availableYears } = useMemo(() => {
               </div>
               <span className="text-xl font-bold tracking-tight">Controle de Acessórios TI</span>
             </div>
-            <div className="text-sm text-slate-400">
-               Controle de Estoque & Custos
-            </div>
+            <div className="text-sm text-slate-400">Controle de Estoque & Custos</div>
           </div>
         </div>
       </nav>
 
-      {/* pagina principal  main */}
       <main className="w-full px-4 sm:px-6 lg:px-8 py-8 space-y-8">
         {/* switch between "Registros" and "Estoque" views */}
         <div className="flex gap-4 mb-6">
@@ -395,9 +389,7 @@ const { availableMonths, availableYears } = useMemo(() => {
           >Estoque</button>
         </div>
 
-        {view === 'records' ? (
-          <>        
-          {/* Cards */}
+        {view === 'records' ? ( <>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <StatsCard 
               title="Valor Total" 
@@ -507,7 +499,7 @@ const { availableMonths, availableYears } = useMemo(() => {
               />
              </div>
 
-             {/* Bottom Chart */  }  
+             {/* Bottom Chart */}
              {stats.chartData.length > 0 && (
                  <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-100">
                     <h3 className="text-lg font-semibold text-slate-800 mb-6">Gastos por Setor</h3>
@@ -533,28 +525,43 @@ const { availableMonths, availableYears } = useMemo(() => {
              )}
           </div>
         </div>
-      </>
-      ) : (
-        /* stock view */
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          <div className="lg:col-span-1">
-            <ProductForm
-              editingProduct={editingProduct}
-              onSave={editingProduct ? handleUpdateProduct : handleAddProduct}
-              onCancelEdit={handleCancelProductEdit}
+        </> ) : ( <>
+        {/* stock view */}
+          {/* Cards de Estatísticas do Estoque */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+            <StatsCard 
+              title="Quantidade Total em Estoque" 
+              value={stockStats.totalStock.toString()} 
+              icon={SquareChartGantt} 
+              colorClass="bg-green-500 text-green-600" 
+            />
+            <StatsCard 
+              title="Quantidade Total de Saída" 
+              value={stockStats.totalOutput.toString()} 
+              icon={TrendingUp} 
+              colorClass="bg-red-500 text-red-600" 
             />
           </div>
-          <div className="lg:col-span-2">
-            <ProductTable
-              products={products}
-              onDelete={handleDeleteProduct}
-              onEdit={handleEditProductClick}
-              onExportCSV={handleExportProductsCSV}
-              onExportPDF={handleExportProductsPDF}
-            />
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div className="lg:col-span-1">
+              <ProductForm
+                editingProduct={editingProduct}
+                onSave={editingProduct ? handleUpdateProduct : handleAddProduct}
+                onCancelEdit={handleCancelProductEdit}
+              />
+            </div>
+            <div className="lg:col-span-2">
+              <ProductTable
+                products={productsWithStock}
+                originalProducts={products}
+                onDelete={handleDeleteProduct}
+                onEdit={handleEditProductClick}
+                onExportCSV={handleExportProductsCSV}
+                onExportPDF={handleExportProductsPDF}
+              />
+            </div>
           </div>
-        </div>
-      )}
+        </> )}
       </main>
     </div>
   );
