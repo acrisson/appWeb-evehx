@@ -1,4 +1,4 @@
-const API_URL = ((import.meta as any).env?.VITE_API_URL as string) || "https://server-evehx2.onrender.com"; // use env variable or default to local dev server
+const API_URL = ((import.meta as any).env?.VITE_API_URL as string) || "http://192.168.10.99:3000"; // use env variable or default to local dev server
 
 function normalizeResponse(record: any) {
  
