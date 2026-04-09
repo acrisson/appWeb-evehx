@@ -33,8 +33,8 @@ export const RecordForm: React.FC<RecordFormProps> = ({
       setSelectedProductId(prodIdValue !== null && prodIdValue !== undefined ? prodIdValue.toString() : "");
       setSector(editingRecord.setor);
       setQuantity(editingRecord.quantidade.toString());
-      //setMes(editingRecord.mes.toString());
-      //setAno(editingRecord.ano.toString());
+      setMes(editingRecord.mes.toString());
+      setAno(editingRecord.ano.toString());
     } else {
       resetForm();
     }

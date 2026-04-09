@@ -40,7 +40,7 @@ import {
   updateProduct,
   deleteProduct,
 } from './services/controller';
-import { INITIAL_PRODUCT_LIST } from './constants';
+import { INITIAL_PRODUCT_LIST, SECTORS } from './constants';
 import logo from './src/assets/logo.png';
 
 
@@ -55,6 +55,7 @@ const App: React.FC = () => {
   const [editingRecord, setEditingRecord] = useState<Inventory | null>(null);
   const [filterMes, setFilterMes] = React.useState<string>('');
   const [filterAno, setFilterAno] = React.useState<string>('');
+  const [filterSetor, setFilterSetor] = React.useState<string>('');
 
   // products state loaded from API
   const [products, setProducts] = useState<ProdutoItem[]>(INITIAL_PRODUCT_LIST);
@@ -71,18 +72,48 @@ const App: React.FC = () => {
   }, [records, products]);
  // const [availableMonths, setAvailableMonths] = useState<number[]>([]);
  // const [availableYears, setAvailableYears] = useState<number[]>([]);
-  const normalizeRecord = (r: any): Inventory => ({
-    ...r,
-    productId: r.productId ?? r.productid,
-    valorUnit: r.valorUnit ?? r.valorunit,
-    total: r.total ?? r.total,
-    estoque: r.estoque ?? r.estoque,
-    setor: r.setor ?? r.setor,
-    quantidade: r.quantidade ?? r.quantidade,
-    mes: r.mes ?? r.mes,
-    ano: r.ano ?? r.ano,
-    timestamp: r.timestamp ?? r.timestamp,
-  });
+  const normalizeRecord = (r: any): Inventory => {
+    const rawTimestamp = r.timestamp ?? r.createdAt ?? r.created_at ?? r.date ?? 0;
+    const timestampValue = typeof rawTimestamp === 'number'
+      ? rawTimestamp
+      : rawTimestamp
+        ? new Date(rawTimestamp).getTime()
+        : 0;
+    const parsedTimestamp = Number.isFinite(timestampValue) ? timestampValue : 0;
+
+    const rawMes = r.mes ?? r.month ?? r.monthNumber;
+    const rawAno = r.ano ?? r.year;
+    const mesValue = Number(rawMes);
+    const anoValue = Number(rawAno);
+
+    let parsedMes = Number.isInteger(mesValue) && mesValue >= 1 && mesValue <= 12 ? mesValue : NaN;
+    let parsedAno = Number.isInteger(anoValue) && anoValue > 0 ? anoValue : NaN;
+
+    if (!Number.isInteger(parsedMes) || !Number.isInteger(parsedAno)) {
+      const date = new Date(parsedTimestamp);
+      const dateMes = date.getMonth() + 1;
+      const dateAno = date.getFullYear();
+      if (!Number.isInteger(parsedMes) && dateMes >= 1 && dateMes <= 12) {
+        parsedMes = dateMes;
+      }
+      if (!Number.isInteger(parsedAno) && dateAno > 0) {
+        parsedAno = dateAno;
+      }
+    }
+
+    return {
+      ...r,
+      productId: r.productId ?? r.productid,
+      valorUnit: r.valorUnit ?? r.valorunit,
+      total: r.total ?? r.total,
+      estoque: r.estoque ?? r.estoque,
+      setor: r.setor ?? r.setor,
+      quantidade: r.quantidade ?? r.quantidade,
+      mes: parsedMes,
+      ano: parsedAno,
+      timestamp: parsedTimestamp,
+    } as Inventory;
+  };
 
   const loadRecords = async () => {
     const data = await getRecords();
@@ -178,8 +209,13 @@ const App: React.FC = () => {
   // Export CSV of records
   const handleExportCSV = () => {
     const target = records.filter(r => {
-      if (filterMes && Number(filterMes) !== r.mes) return false;
-      if (filterAno && Number(filterAno) !== r.ano) return false;
+      const date = new Date(r.timestamp);
+      const mes = date.getMonth() + 1;
+      const ano = date.getFullYear();
+
+      if (filterMes && Number(filterMes) !== mes) return false;
+      if (filterAno && Number(filterAno) !== ano) return false;
+      if (filterSetor && filterSetor !== r.setor) return false;
       return true;
     });
 
@@ -204,55 +240,183 @@ const App: React.FC = () => {
     document.body.removeChild(link);
   };
 
-  // Export PDF of records
+
+   // Export PDF of records
+
   const handleExportPDF = () => {
-    const target = records.filter(r => {
-      if (filterMes && Number(filterMes) !== r.mes) return false;
-      if (filterAno && Number(filterAno) !== r.ano) return false;
-      return true;
-    });
+  const target = records.filter((r) => {
+    const date = new Date(r.timestamp);
+    const mes = date.getMonth() + 1;
+    const ano = date.getFullYear();
 
+    if (filterMes && Number(filterMes) !== mes) return false;
+    if (filterAno && Number(filterAno) !== ano) return false;
+    if (filterSetor && filterSetor !== r.setor) return false;
+    return true;
+  });
 
-    if (target.length === 0) {
-      alert("Não há registros para exportar.");
-      return;
-    }
+  if (target.length === 0) {
+    alert("Não há registros para exportar.");
+    return;
+  }
 
-    const doc = new jsPDF();
-    
-    // Cabeçalho do PDF
-    doc.setFontSize(18);
-    doc.text("Relatório de Acessórios", 14, 22);
-    doc.setFontSize(11);
-    doc.text(`Mês Referente: ${new Date().toLocaleDateString('pt-BR')}`, 14, 30);
+  const doc = new jsPDF("p", "mm", "a4");
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const pageHeight = doc.internal.pageSize.getHeight();
 
-    // Resumo no topo do PDF
-    const totalValue = target.reduce((acc, curr) => acc + (isNaN(Number(curr.total)) ? 0 : Number(curr.total)), 0);
-    const totalItems = target.reduce((acc, curr) => acc + curr.quantidade, 0);
-    doc.text(`Total de Itens: ${totalItems} | Valor Total: ${formatCurrency(totalValue)}`, 14, 38);
-         
-    // Tabela de dados
-    const tableColumn = ["ID", "Produto", "Setor", "Qtd", "Unitário", "Total"];
-    const tableRows = target.map(record => [
-      record.productId,
-      record.nome,
-      record.setor,
-      record.quantidade,
-      formatCurrency(record.valorUnit),
-      formatCurrency(record.total)
-    ]);
-    
+  // ========= DADOS RESUMO =========
+  const totalValue = target.reduce(
+    (acc, curr) => acc + (isNaN(Number(curr.total)) ? 0 : Number(curr.total)),
+    0
+  );
 
-    autoTable(doc, {
-      startY: 45,
-      head: [tableColumn],
-      body: tableRows,
-      theme: 'grid',
-      headStyles: { fillColor: [41, 128, 185] },
-    });
+  const totalItems = target.reduce(
+    (acc, curr) => acc + (isNaN(Number(curr.quantidade)) ? 0 : Number(curr.quantidade)),
+    0
+  );
 
-    doc.save("relatorio_acessorios.pdf");
-  };
+  const periodoTexto = `${
+    filterMes ? String(filterMes).padStart(2, "0") : "Todos"
+  }/${filterAno || "Todos"}`;
+
+  const setorTexto = filterSetor || "Todos";
+
+  const dataGeracao = new Date().toLocaleString("pt-BR");
+
+  // ========= CORES =========
+  const primaryColor: [number, number, number] = [30, 58, 138];
+const secondaryColor: [number, number, number] = [59, 130, 246];
+const lightBg: [number, number, number] = [243, 244, 246];
+const textDark: [number, number, number] = [31, 41, 55];
+const successColor: [number, number, number] = [22, 163, 74];
+
+  // ========= CABEÇALHO =========
+  doc.setFillColor(...primaryColor);
+  doc.rect(0, 0, pageWidth, 28, "F");
+  doc.addImage(logo, "PNG", pageWidth - 60, 10, 40, 20);
+  doc.setTextColor(255, 255, 255);
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(18);
+  doc.text("Relatório de Acessórios", 14, 16);
+
+  doc.setFontSize(10);
+  doc.setFont("helvetica", "normal");
+  doc.text(`Gerado em: ${dataGeracao}`, 14, 23);
+
+  // ========= INFORMAÇÕES DOS FILTROS =========
+  let currentY = 38;
+
+  doc.setTextColor(...textDark);
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(12);
+  doc.text("Evehx Engenharia", 14, currentY);
+
+  currentY += 6;
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(10);
+  doc.text(`Período: ${periodoTexto}`, 14, currentY);
+  doc.text(`Setor: ${setorTexto}`, 80, currentY);
+
+  // ========= CAIXAS DE RESUMO =========
+  currentY += 10;
+
+  // Caixa total de itens
+  doc.setFillColor(...lightBg);
+  doc.roundedRect(14, currentY, 55, 18, 3, 3, "F");
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(10);
+  doc.setTextColor(...textDark);
+  doc.text("Total de Itens", 18, currentY + 7);
+  doc.setFontSize(13);
+  doc.setTextColor(...secondaryColor);
+  doc.text(String(totalItems), 18, currentY + 14);
+
+  // Caixa valor total
+  doc.setFillColor(...lightBg);
+  doc.roundedRect(75, currentY, 75, 18, 3, 3, "F");
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(10);
+  doc.setTextColor(...textDark);
+  doc.text("Valor Total", 79, currentY + 7);
+  doc.setFontSize(13);
+  doc.setTextColor(...successColor);
+  doc.text(formatCurrency(totalValue), 79, currentY + 14);
+
+  currentY += 28;
+
+  // ========= TABELA =========
+  const tableColumn = [
+    "ID",
+    "Produto",
+    "Setor",
+    "Qtd",
+    "Valor Unit.",
+    "Valor Total",
+  ];
+
+  const tableRows = target.map((record) => [
+    String(record.productId ?? ""),
+    String(record.nome ?? ""),
+    String(record.setor ?? ""),
+    String(record.quantidade ?? 0),
+    formatCurrency(record.valorUnit ?? 0),
+    formatCurrency(record.total ?? 0),
+  ]);
+
+  autoTable(doc, {
+    startY: currentY,
+    head: [tableColumn],
+    body: tableRows,
+    theme: "striped",
+    styles: {
+      font: "helvetica",
+      fontSize: 9,
+      cellPadding: 3,
+      textColor: textDark,
+      valign: "middle",
+    },
+    headStyles: {
+      fillColor: primaryColor,
+      textColor: [255, 255, 255],
+      fontStyle: "bold",
+      fontSize: 10,
+      halign: "center",
+    },
+    alternateRowStyles: {
+      fillColor: [248, 250, 252],
+    },
+    columnStyles: {
+      0: { halign: "center", cellWidth: 18 },
+      1: { cellWidth: 55 },
+      2: { halign: "center", cellWidth: 30 },
+      3: { halign: "center", cellWidth: 15 },
+      4: { halign: "right", cellWidth: 32 },
+      5: { halign: "right", cellWidth: 32 },
+    },
+    margin: { left: 14, right: 14 },
+    didDrawPage: (data) => {
+      // Rodapé
+      const pageNumber = doc.getNumberOfPages();
+      doc.setFontSize(9);
+      doc.setTextColor(120);
+      doc.text(
+        `Página ${pageNumber}`,
+        pageWidth - 25,
+        pageHeight - 10
+      );
+
+      doc.text(
+        "Relatório gerado automaticamente pelo sistema",
+        14,
+        pageHeight - 10
+      );
+    },
+  });
+
+  // ========= NOME DO ARQUIVO =========
+  const dataArquivo = new Date().toISOString().slice(0, 10);
+  doc.save(`relatorio_acessorios_${dataArquivo}.pdf`);
+};
 
   // export helpers for products
   const handleExportProductsCSV = () => {
@@ -295,15 +459,16 @@ const App: React.FC = () => {
   const filteredRecords = useMemo(() => {
   return records.filter(r => {
     const date = new Date(r.timestamp);
-    const mes = date.getMonth() + 1; // Janeiro = 0
+    const mes = date.getMonth() + 1;
     const ano = date.getFullYear();
 
     if (filterMes && Number(filterMes) !== mes) return false;
     if (filterAno && Number(filterAno) !== ano) return false;
+    if (filterSetor && filterSetor !== r.setor) return false;
 
     return true;
   });
-}, [records, filterMes, filterAno]);
+}, [records, filterMes, filterAno, filterSetor]);
 
 const { availableMonths, availableYears } = useMemo(() => {
   const monthsSet = new Set<number>();
@@ -311,8 +476,14 @@ const { availableMonths, availableYears } = useMemo(() => {
 
   records.forEach((r) => {
     const date = new Date(r.timestamp);
-    monthsSet.add(date.getMonth() + 1); // Janeiro = 0
-    yearsSet.add(date.getFullYear());
+    const mes = date.getMonth() + 1;
+    const ano = date.getFullYear();
+    if (mes >= 1 && mes <= 12) {
+      monthsSet.add(mes);
+    }
+    if (ano > 0) {
+      yearsSet.add(ano);
+    }
   });
 
   return {
@@ -486,7 +657,16 @@ const { availableMonths, availableYears } = useMemo(() => {
                                </option>))}
                     </select>
                   </div>
-                  <button className="ml-auto text-sm text-slate-600 underline" onClick={() => { setFilterMes(''); setFilterAno(''); }}>Limpar</button>
+                  <div>
+                    <label className="block text-sm text-slate-600">Setor</label>
+                    <select value={filterSetor} onChange={(e) => setFilterSetor(e.target.value)} className="rounded border p-2">
+                      <option value="">Todos</option>
+                      {SECTORS.map((setor) => (
+                        <option key={setor} value={setor}>{setor}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <button className="ml-auto text-sm text-slate-600 underline" onClick={() => { setFilterMes(''); setFilterAno(''); setFilterSetor(''); }}>Limpar</button>
                 </div>
               </div>
 
