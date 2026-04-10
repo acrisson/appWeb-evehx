@@ -173,13 +173,13 @@ const App: React.FC = () => {
     loadProducts();
   };
 
-  // update uses the current editingProduct id; form sends only the fields
+  // update usa o ID do produto de edição atual; formulário envia apenas os campos
   const handleUpdateProduct = async (data: Omit<ProdutoItem, 'id'>) => {
     if (!editingProduct) return;
     await updateProduct(editingProduct.id, {
       nome: data.nome,
       valor: data.valor,
-      estoque: data.estoque,
+      estoque: Number(editingProduct.estoque) + Number(data.estoque), // somar estoque existente com o novo valor
     });
     setEditingProduct(null);
     loadProducts();
@@ -242,7 +242,9 @@ const App: React.FC = () => {
 
 
    // Export PDF of records
-
+  const formatDate = (timestamp: number) => {
+  return new Date(timestamp).toLocaleDateString("pt-BR");
+  };
   const handleExportPDF = () => {
   const target = records.filter((r) => {
     const date = new Date(r.timestamp);
@@ -260,7 +262,7 @@ const App: React.FC = () => {
     return;
   }
 
-  const doc = new jsPDF("p", "mm", "a4");
+  const doc = new jsPDF("l", "mm", "a4");
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
 
@@ -350,6 +352,7 @@ const successColor: [number, number, number] = [22, 163, 74];
     "Produto",
     "Setor",
     "Qtd",
+    "Data Registro",
     "Valor Unit.",
     "Valor Total",
   ];
@@ -359,60 +362,50 @@ const successColor: [number, number, number] = [22, 163, 74];
     String(record.nome ?? ""),
     String(record.setor ?? ""),
     String(record.quantidade ?? 0),
+    formatDate(record.timestamp),
     formatCurrency(record.valorUnit ?? 0),
     formatCurrency(record.total ?? 0),
   ]);
 
   autoTable(doc, {
-    startY: currentY,
-    head: [tableColumn],
-    body: tableRows,
-    theme: "striped",
-    styles: {
-      font: "helvetica",
-      fontSize: 9,
-      cellPadding: 3,
-      textColor: textDark,
-      valign: "middle",
-    },
-    headStyles: {
-      fillColor: primaryColor,
-      textColor: [255, 255, 255],
-      fontStyle: "bold",
-      fontSize: 10,
-      halign: "center",
-    },
-    alternateRowStyles: {
-      fillColor: [248, 250, 252],
-    },
-    columnStyles: {
-      0: { halign: "center", cellWidth: 18 },
-      1: { cellWidth: 55 },
-      2: { halign: "center", cellWidth: 30 },
-      3: { halign: "center", cellWidth: 15 },
-      4: { halign: "right", cellWidth: 32 },
-      5: { halign: "right", cellWidth: 32 },
-    },
-    margin: { left: 14, right: 14 },
-    didDrawPage: (data) => {
-      // Rodapé
-      const pageNumber = doc.getNumberOfPages();
-      doc.setFontSize(9);
-      doc.setTextColor(120);
-      doc.text(
-        `Página ${pageNumber}`,
-        pageWidth - 25,
-        pageHeight - 10
-      );
-
-      doc.text(
-        "Relatório gerado automaticamente pelo sistema",
-        14,
-        pageHeight - 10
-      );
-    },
-  });
-
+  startY: currentY,
+  head: [tableColumn],
+  body: tableRows,
+  theme: "striped",
+  styles: {
+    font: "helvetica",
+    fontSize: 9,
+    cellPadding: 3,
+    textColor: textDark,
+    valign: "middle",
+    overflow: "linebreak",
+  },
+  headStyles: {
+    fillColor: primaryColor,
+    textColor: [255, 255, 255],
+    fontStyle: "bold",
+    fontSize: 10,
+    halign: "center",
+    valign: "middle",
+  },
+  columnStyles: {
+    0: { halign: "center", cellWidth: 16 }, // ID
+    1: { cellWidth: 65 },                   // Produto
+    2: { halign: "center", cellWidth: 38 }, // Setor
+    3: { halign: "center", cellWidth: 16 }, // Qtd
+    4: { halign: "center", cellWidth: 28 }, // Data
+    5: { halign: "right", cellWidth: 30 },  // Valor Unit.
+    6: { halign: "right", cellWidth: 30 },  // Valor Total
+  },
+  margin: { left: 10, right: 10 },
+  didDrawPage: () => {
+    const pageNumber = doc.getNumberOfPages();
+    doc.setFontSize(9);
+    doc.setTextColor(120);
+    doc.text(`Página ${pageNumber}`, pageWidth - 30, pageHeight - 10);
+    doc.text("Relatório gerado automaticamente pelo sistema", 10, pageHeight - 10);
+  },
+});
   // ========= NOME DO ARQUIVO =========
   const dataArquivo = new Date().toISOString().slice(0, 10);
   doc.save(`relatorio_acessorios_${dataArquivo}.pdf`);
@@ -690,7 +683,7 @@ const { availableMonths, availableYears } = useMemo(() => {
                                 <XAxis type="number" tickFormatter={(val) => `R$${val}`} />
                                 <YAxis dataKey="name" type="category" width={120} />
                                 <Tooltip 
-                                    formatter={(value: number) => [formatCurrency(value), "Total"]}
+                                    formatter={(value: any) => [formatCurrency(value), "Total"]}
                                     cursor={{fill: '#f1f5f9'}}
                                 />
                                 <Bar dataKey="value" fill="#3b82f6" radius={[0, 4, 4, 0]} barSize={30}>
