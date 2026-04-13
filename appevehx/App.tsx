@@ -262,7 +262,7 @@ const App: React.FC = () => {
     return;
   }
 
-  const doc = new jsPDF("l", "mm", "a4");
+  const doc = new jsPDF("p", "mm", "a4");
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
 
@@ -389,15 +389,15 @@ const successColor: [number, number, number] = [22, 163, 74];
     valign: "middle",
   },
   columnStyles: {
-    0: { halign: "center", cellWidth: 16 }, // ID
+    0: { halign: "center", cellWidth: 10 }, // ID
     1: { cellWidth: 65 },                   // Produto
     2: { halign: "center", cellWidth: 38 }, // Setor
-    3: { halign: "center", cellWidth: 16 }, // Qtd
-    4: { halign: "center", cellWidth: 28 }, // Data
-    5: { halign: "right", cellWidth: 30 },  // Valor Unit.
-    6: { halign: "right", cellWidth: 30 },  // Valor Total
+    3: { halign: "center", cellWidth: 15 }, // Qtd
+    4: { halign: "center", cellWidth: 25 }, // Data
+    5: { halign: "right", cellWidth: 25},  // Valor Unit.
+    6: { halign: "right", cellWidth: 25 },  // Valor Total
   },
-  margin: { left: 10, right: 10 },
+  margin: { left: 5, right: 5 },
   didDrawPage: () => {
     const pageNumber = doc.getNumberOfPages();
     doc.setFontSize(9);
