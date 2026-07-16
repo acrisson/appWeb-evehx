@@ -681,12 +681,12 @@ const { availableMonths, availableYears } = useMemo(() => {
              {stats.chartData.length > 0 && (
                  <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-100">
                     <h3 className="text-lg font-semibold text-slate-800 mb-6">Gastos por Setor</h3>
-                    <div className="h-64 w-full">
+                    <div className="w-full" style={{ height: Math.max(256, stats.chartData.length * 44) }}>
                         <ResponsiveContainer width="100%" height="100%">
                             <BarChart data={stats.chartData} layout="vertical" margin={{ top: 5, right: 30, left: 40, bottom: 5 }}>
                                 <CartesianGrid strokeDasharray="3 3" horizontal={false} />
                                 <XAxis type="number" tickFormatter={(val) => `R$${val}`} />
-                                <YAxis dataKey="name" type="category" width={120} />
+                                <YAxis dataKey="name" type="category" width={120} interval={0} />
                                 <Tooltip 
                                     formatter={(value: any) => [formatCurrency(value), "Total"]}
                                     cursor={{fill: '#f1f5f9'}}
