@@ -116,8 +116,13 @@ const App: React.FC = () => {
   };
 
   const loadRecords = async () => {
-    const data = await getRecords();
-    setRecords(Array.isArray(data) ? data.map(normalizeRecord) : []);
+    try {
+      const data = await getRecords();
+      setRecords(Array.isArray(data) ? data.map(normalizeRecord) : []);
+    } catch (e) {
+      console.error('failed to load records', e);
+      setRecords([]);
+    }
   };
 
   const loadProducts = async () => {
