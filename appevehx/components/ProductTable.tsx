@@ -73,8 +73,9 @@ export const ProductTable: React.FC<ProductTableProps> = ({
               const original = originalProducts.find(p => p.id === prod.id);
               const saidaValue = original ? original.estoque - prod.estoque : 0;
               const stockValue = prod.estoque;
-              const stockClass = stockValue < 0? 'text-red-600' :   'text-green-600';
-              const saidaClass = saidaValue > 0 ? 'text-red-600' : 'text-green-600'
+              // Estoque zerado também representa indisponibilidade.
+              const stockClass = stockValue <= 0 ? 'text-red-600' : 'text-green-600';
+              const saidaClass = saidaValue > 0 ? 'text-red-600' : 'text-green-600';
               return (
               <tr key={prod.id} className="hover:bg-slate-50 transition-colors">
                 <td className="px-6 py-4 text-sm text-slate-800 font-mono">{prod.id}</td>

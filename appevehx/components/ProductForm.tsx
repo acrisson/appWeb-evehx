@@ -21,7 +21,9 @@ export const ProductForm: React.FC<ProductFormProps> = ({
     if (editingProduct) {
       setNome(editingProduct.nome);
       setValor(editingProduct.valor.toString());
-      setEstoque(editingProduct.estoque.toString());
+      // Na edição, este campo representa uma nova entrada no estoque.
+      // Começar com o saldo atual faria o valor ser somado novamente ao salvar.
+      setEstoque('0');
     } else {
       resetForm();
     }
@@ -88,9 +90,13 @@ export const ProductForm: React.FC<ProductFormProps> = ({
           />
         </div>
         <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1">Estoque</label>
+          <label className="block text-sm font-medium text-slate-700 mb-1">
+            {isEditing ? 'Adicionar ao estoque atual' : 'Estoque inicial'}
+          </label>
           <input
             type="number"
+            min="0"
+            step="1"
             value={estoque}
             onChange={(e) => setEstoque(e.target.value)}
             className="w-full rounded-lg border-slate-300 border p-2.5 focus:ring-2 focus:ring-blue-500 outline-none"
